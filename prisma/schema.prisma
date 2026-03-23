@@ -1,0 +1,290 @@
+// Jimmy's Order App - Prisma Schema
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+  ONLINE
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  ONLINE
+  OTHER
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+  ALERT
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+model User {
+  id            String  @id @default(cuid())
+  clerkId       String  @unique
+  email         String  @unique
+  username      String? @unique
+  firstName     String
+  lastName      String
+  imageUrl      String?
+  phone         String?
+  role          Role    @default(STAFF)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  // Relations
+  orders         Order[]       @relation("CreatedByUser")
+  processedOrders Order[]      @relation("ProcessedByUser")
+  notifications  Notification[]
+
+  @@index([clerkId])
+  @@index([email])
+  @@index([role])
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  description String?       @db.Text
+  imageUrl    String?
+  price       Decimal       @db.Decimal(10, 2)
+  status      ProductStatus @default(ACTIVE)
+  sku         String?       @unique
+  sortOrder   Int           @default(0)
+
+  // Category
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Inventory tracking
+  trackInventory Boolean @default(false)
+  stockQuantity  Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([sku])
+}
+
+model Customer {
+  id        String  @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String? @unique
+  phone     String?
+  notes     String? @db.Text
+
+  // Address
+  streetAddress String?
+  city          String?
+  state         String?
+  zipCode       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Order {
+  id          String        @id @default(cuid())
+  orderNumber String        @unique // e.g., ORD-2024-0001
+  type        OrderType     @default(DINE_IN)
+  status      OrderStatus   @default(PENDING)
+
+  // Customer (optional for walk-ins)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  // Table / delivery info
+  tableNumber   String?
+  deliveryAddress String? @db.Text
+  notes         String?   @db.Text
+
+  // Pricing
+  subtotal    Decimal @db.Decimal(10, 2)
+  taxAmount   Decimal @db.Decimal(10, 2) @default(0)
+  discountAmount Decimal @db.Decimal(10, 2) @default(0)
+  tipAmount   Decimal @db.Decimal(10, 2) @default(0)
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  // Payment
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
+
+  // Staff tracking
+  createdById    String
+  createdBy      User   @relation("CreatedByUser", fields: [createdById], references: [id])
+  processedById  String?
+  processedBy    User?  @relation("ProcessedByUser", fields: [processedById], references: [id])
+
+  // Timestamps
+  confirmedAt  DateTime?
+  preparedAt   DateTime?
+  readyAt      DateTime?
+  completedAt  DateTime?
+  cancelledAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    OrderItem[]
+  payments Payment[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([type])
+  @@index([paymentStatus])
+  @@index([orderNumber])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String?
+
+  // Snapshot of product at time of order
+  productName  String
+  unitPrice    Decimal @db.Decimal(10, 2)
+  quantity     Int
+  lineTotal    Decimal @db.Decimal(10, 2)
+
+  // Customization
+  notes        String? @db.Text
+  modifiers    String? @db.Text // JSON array of modifier strings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id      String        @id @default(cuid())
+  orderId String
+
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  referenceNumber String?     // External payment reference
+  notes         String?
+
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([method])
+  @@index([processedAt])
+}
+
+model Notification {
+  id     String  @id @default(cuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType @default(INFO)
+  title   String
+  message String           @db.Text
+
+  actionLabel String?
+  actionUrl   String?
+
+  dismissible Boolean   @default(true)
+  dismissedAt DateTime?
+  readAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([dismissedAt])
+  @@index([createdAt])
+
+  @@map("notifications")
+}
