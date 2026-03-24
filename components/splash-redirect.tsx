@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { UtensilsCrossed } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function SplashRedirect() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const id = setTimeout(() => {
-      router.replace("/menu");
-    }, 3000);
-    return () => clearTimeout(id);
-  }, [router]);
-
-  return null;
+export function SplashCta() {
+  return (
+    <Link
+      href="/menu"
+      className={cn(
+        buttonVariants({ size: "lg" }),
+        "mt-8 gap-2 rounded-full px-8 text-lg",
+      )}
+    >
+      <UtensilsCrossed className="h-5 w-5" />
+      Let&apos;s Eat!
+    </Link>
+  );
 }
