@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,38 +49,39 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* Jimmy's Cafe — warm breakfast-inspired palette */
+  --background: oklch(0.99 0.012 95);        /* Soft Cream #FDFBF2 */
+  --foreground: oklch(0.18 0.04 55);         /* Charcoal Brown #2C1A0E */
+  --card: oklch(1 0 0);                      /* White */
+  --card-foreground: oklch(0.18 0.04 55);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.18 0.04 55);
+  --primary: oklch(0.28 0.08 250);           /* Deep Navy Blue #1E3A5F */
+  --primary-foreground: oklch(0.99 0.012 95);
+  --secondary: oklch(0.95 0.02 90);          /* Warm off-white #F0EDD8 */
+  --secondary-foreground: oklch(0.18 0.04 55);
+  --muted: oklch(0.95 0.02 90);
+  --muted-foreground: oklch(0.43 0.04 60);   /* Medium warm brown #6B5B45 */
+  --accent: oklch(0.83 0.18 90);             /* Golden Yellow #F5C518 */
+  --accent-foreground: oklch(0.18 0.04 55);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.90 0.02 90);             /* Warm beige #E5DFC8 */
+  --input: oklch(0.90 0.02 90);
+  --ring: oklch(0.28 0.08 250);
+  --chart-1: oklch(0.83 0.18 90);            /* Golden Yellow */
+  --chart-2: oklch(0.28 0.08 250);           /* Navy */
+  --chart-3: oklch(0.55 0.12 55);            /* Warm amber */
+  --chart-4: oklch(0.43 0.04 60);            /* Medium brown */
+  --chart-5: oklch(0.65 0.10 145);           /* Earthy green */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.28 0.08 250);           /* Navy sidebar */
+  --sidebar-foreground: oklch(0.99 0.012 95);
+  --sidebar-primary: oklch(0.83 0.18 90);    /* Golden Yellow active */
+  --sidebar-primary-foreground: oklch(0.18 0.04 55);
+  --sidebar-accent: oklch(0.32 0.08 250);    /* Slightly lighter navy */
+  --sidebar-accent-foreground: oklch(0.99 0.012 95);
+  --sidebar-border: oklch(0.35 0.07 250);
+  --sidebar-ring: oklch(0.83 0.18 90);
 }
 
 .dark {
