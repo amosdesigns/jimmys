@@ -50,7 +50,7 @@
     "dotenv": "^17.3.1",
     "lightningcss": "^1.32.0",
     "lucide-react": "^0.577.0",
-    "next": "16.2.1",
+    "next": "16.2.3",
     "next-themes": "^0.4.6",
     "pg": "^8.20.0",
     "react": "19.2.4",
