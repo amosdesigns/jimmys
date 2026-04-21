@@ -16,7 +16,7 @@ type ClerkEvent = {
 }
 
 export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
+  const WEBHOOK_SECRET = process.env['CLERK_WEBHOOK_SECRET']
 
   if (!WEBHOOK_SECRET) {
     return NextResponse.json(
@@ -56,6 +56,10 @@ export async function POST(req: Request) {
   const primaryEmail = data.email_addresses[0]?.email_address
 
   if (type === 'user.created') {
+    if (!primaryEmail) {
+      return NextResponse.json({ error: 'Missing primary email' }, { status: 400 })
+    }
+
     await prisma.user.create({
       data: {
         clerkId: data.id,
@@ -69,6 +73,10 @@ export async function POST(req: Request) {
   }
 
   if (type === 'user.updated') {
+    if (!primaryEmail) {
+      return NextResponse.json({ error: 'Missing primary email' }, { status: 400 })
+    }
+
     await prisma.user.update({
       where: { clerkId: data.id },
       data: {

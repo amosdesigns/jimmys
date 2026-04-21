@@ -10,7 +10,7 @@ export function Logo() {
 
   const tick = useCallback(() => {
     const { lineIndex, charIndex, erasing } = state.current;
-    const target = LINES[lineIndex];
+    const target = LINES[lineIndex] ?? "";
 
     if (!erasing) {
       if (charIndex < target.length) {
