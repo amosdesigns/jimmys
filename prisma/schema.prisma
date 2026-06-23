@@ -66,29 +66,45 @@ enum NotificationType {
   ALERT
 }
 
+enum OrderItemStatus {
+  QUEUED
+  IN_PROGRESS
+  READY
+  DELIVERED
+  VOIDED
+}
+
+enum SandwichCategoryKind {
+  BREAD
+  CHEESE
+  PROTEIN
+  VEG
+  SAUCE
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
 
 model User {
-  id            String  @id @default(cuid())
-  clerkId       String  @unique
-  email         String  @unique
-  username      String? @unique
-  firstName     String
-  lastName      String
-  imageUrl      String?
-  phone         String?
-  role          Role    @default(STAFF)
+  id        String  @id @default(cuid())
+  clerkId   String  @unique
+  email     String  @unique
+  username  String? @unique
+  firstName String
+  lastName  String
+  imageUrl  String?
+  phone     String?
+  role      Role    @default(STAFF)
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
 
   // Relations
-  orders         Order[]       @relation("CreatedByUser")
-  processedOrders Order[]      @relation("ProcessedByUser")
-  notifications  Notification[]
+  orders          Order[]        @relation("CreatedByUser")
+  processedOrders Order[]        @relation("ProcessedByUser")
+  notifications   Notification[]
 
   @@index([clerkId])
   @@index([email])
@@ -130,14 +146,110 @@ model Product {
   trackInventory Boolean @default(false)
   stockQuantity  Int?
 
+  // Configurable products (e.g. "Build Your Own Sandwich")
+  isConfigurable Boolean  @default(false)
+  basePrice      Decimal? @db.Decimal(10, 2) // used instead of `price` when isConfigurable
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  optionGroups ProductOptionGroup[]
 
   @@index([categoryId])
   @@index([status])
   @@index([sku])
+}
+
+model Ingredient {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  slug        String               @unique
+  description String?              @db.Text
+  imageUrl    String?
+  kind        SandwichCategoryKind
+  isPremium   Boolean              @default(false)
+  isAvailable Boolean              @default(true)
+
+  // Allergens as discrete strings — queryable, no enum lock-in
+  allergens String[]
+
+  // Optional inventory — aligns with Product.trackInventory pattern
+  trackInventory Boolean @default(false)
+  stockQuantity  Int?
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  options ProductOption[]
+
+  @@index([kind, isAvailable])
+  @@index([sortOrder])
+}
+
+model ProductOptionGroup {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  kind               SandwichCategoryKind
+  name               String // display label, e.g. "Cheese"
+  position           Int // 1..5 for the build order
+  minSelections      Int                  @default(0)
+  maxSelections      Int                  @default(1)
+  secondSelectionFee Decimal              @default(0) @db.Decimal(10, 2)
+
+  options ProductOption[]
+
+  @@unique([productId, position])
+  @@index([productId])
+}
+
+model ProductOption {
+  id      String             @id @default(cuid())
+  groupId String
+  group   ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  priceDelta Decimal @default(0) @db.Decimal(10, 2)
+  sortOrder  Int     @default(0)
+
+  @@unique([groupId, ingredientId])
+  @@index([groupId])
+}
+
+model SandwichDraft {
+  id            String  @id @default(cuid())
+  sessionCookie String  @unique // jc_draft cookie value
+  userId        String? // null for guest; set if signed in
+  productId     String // the "Build Your Own Sandwich" product
+
+  // Structured composition, validated against the product's groups
+  composition Json
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionCookie])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model SavedSandwich {
+  id          String @id @default(cuid())
+  userId      String
+  name        String
+  productId   String
+  composition Json // same shape as SandwichDraft.composition
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Customer {
@@ -164,44 +276,44 @@ model Customer {
 }
 
 model Order {
-  id          String        @id @default(cuid())
-  orderNumber String        @unique // e.g., ORD-2024-0001
-  type        OrderType     @default(DINE_IN)
-  status      OrderStatus   @default(PENDING)
+  id          String      @id @default(cuid())
+  orderNumber String      @unique // e.g., ORD-2024-0001
+  type        OrderType   @default(DINE_IN)
+  status      OrderStatus @default(PENDING)
 
   // Customer (optional for walk-ins)
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   // Table / delivery info
-  tableNumber   String?
+  tableNumber     String?
   deliveryAddress String? @db.Text
-  notes         String?   @db.Text
+  notes           String? @db.Text
 
   // Pricing
-  subtotal    Decimal @db.Decimal(10, 2)
-  taxAmount   Decimal @db.Decimal(10, 2) @default(0)
-  discountAmount Decimal @db.Decimal(10, 2) @default(0)
-  tipAmount   Decimal @db.Decimal(10, 2) @default(0)
-  totalAmount Decimal @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  tipAmount      Decimal @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal @db.Decimal(10, 2)
 
   // Payment
-  paymentStatus PaymentStatus @default(UNPAID)
+  paymentStatus PaymentStatus  @default(UNPAID)
   paymentMethod PaymentMethod?
   paidAt        DateTime?
 
   // Staff tracking
-  createdById    String
-  createdBy      User   @relation("CreatedByUser", fields: [createdById], references: [id])
-  processedById  String?
-  processedBy    User?  @relation("ProcessedByUser", fields: [processedById], references: [id])
+  createdById   String
+  createdBy     User    @relation("CreatedByUser", fields: [createdById], references: [id])
+  processedById String?
+  processedBy   User?   @relation("ProcessedByUser", fields: [processedById], references: [id])
 
   // Timestamps
-  confirmedAt  DateTime?
-  preparedAt   DateTime?
-  readyAt      DateTime?
-  completedAt  DateTime?
-  cancelledAt  DateTime?
+  confirmedAt DateTime?
+  preparedAt  DateTime?
+  readyAt     DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -224,14 +336,22 @@ model OrderItem {
   productId String?
 
   // Snapshot of product at time of order
-  productName  String
-  unitPrice    Decimal @db.Decimal(10, 2)
-  quantity     Int
-  lineTotal    Decimal @db.Decimal(10, 2)
+  productName String
+  unitPrice   Decimal @db.Decimal(10, 2)
+  quantity    Int
+  lineTotal   Decimal @db.Decimal(10, 2)
 
   // Customization
-  notes        String? @db.Text
-  modifiers    String? @db.Text // JSON array of modifier strings
+  notes     String? @db.Text
+  modifiers String? @db.Text // JSON snapshot of the resolved composition (group/option/priceDelta/modifiers)
+
+  // Per-line kitchen state (sandwich builder)
+  status      OrderItemStatus @default(QUEUED)
+  startedAt   DateTime?
+  readyAt     DateTime?
+  deliveredAt DateTime?
+  voidedAt    DateTime?
+  voidReason  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,16 +361,17 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+  @@index([status])
 }
 
 model Payment {
-  id      String        @id @default(cuid())
+  id      String @id @default(cuid())
   orderId String
 
-  amount        Decimal       @db.Decimal(10, 2)
-  method        PaymentMethod
-  referenceNumber String?     // External payment reference
-  notes         String?
+  amount          Decimal       @db.Decimal(10, 2)
+  method          PaymentMethod
+  referenceNumber String? // External payment reference
+  notes           String?
 
   processedAt DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -285,6 +406,5 @@ model Notification {
   @@index([userId])
   @@index([dismissedAt])
   @@index([createdAt])
-
   @@map("notifications")
 }
