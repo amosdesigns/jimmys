@@ -50,7 +50,7 @@
     "dotenv": "^17.3.1",
     "lightningcss": "^1.32.0",
     "lucide-react": "^1.21.0",
-    "next": "16.2.9",
+    "next": "16.3.0",
     "next-themes": "^0.4.6",
     "pg": "^8.20.0",
     "react": "19.2.7",
@@ -66,7 +66,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@tailwindcss/postcss": "^4.2.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@total-typescript/ts-reset": "^0.6.1",
     "@types/node": "^24.13.2",
     "@types/pg": "^8.20.0",
